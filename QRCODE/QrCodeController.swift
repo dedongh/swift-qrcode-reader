@@ -21,6 +21,7 @@ class QrCodeController: UIViewController, AVCaptureMetadataOutputObjectsDelegate
     func configureUI() {
         view.backgroundColor = .systemPurple
         navigationController?.navigationBar.isHidden = true
+        checkCameraAccess()
         captureSession = AVCaptureSession()
         
         guard let videoCaptureDevice = AVCaptureDevice.default(for: .video) else { return }
@@ -100,5 +101,38 @@ class QrCodeController: UIViewController, AVCaptureMetadataOutputObjectsDelegate
         override var supportedInterfaceOrientations: UIInterfaceOrientationMask {
             return .portrait
         }
-    
+    func checkCameraAccess() {
+        switch AVCaptureDevice.authorizationStatus(for: .video) {
+        case .denied:
+            print("Denied, request permission from settings")
+            presentCameraSettings()
+        case .restricted:
+            print("Restricted, device owner must approve")
+        case .authorized:
+            print("Authorized, proceed")
+        case .notDetermined:
+            AVCaptureDevice.requestAccess(for: .video) { success in
+                if success {
+                    print("Permission granted, proceed")
+                } else {
+                    print("Permission denied")
+                }
+            }
+        }
+    }
+    func presentCameraSettings() {
+        let alertController = UIAlertController(title: "Error",
+                                      message: "Camera access is denied",
+                                      preferredStyle: .alert)
+        alertController.addAction(UIAlertAction(title: "Cancel", style: .default))
+        alertController.addAction(UIAlertAction(title: "Settings", style: .cancel) { _ in
+            if let url = URL(string: UIApplication.openSettingsURLString) {
+                UIApplication.shared.open(url, options: [:], completionHandler: { _ in
+                    // Handle
+                })
+            }
+        })
+
+        present(alertController, animated: true)
+    }
 }
